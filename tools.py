@@ -1391,22 +1391,60 @@ def plotcorrs(params, labs=None, tit=None, xrot=0, yrot=0, cmap=None,figsize=Non
     return figs, allsubplots
 
 
-def pparams(params, npts=None, figsize=[15,10],newfig=True, labs=None):
+def pparams(params, **args):
     """Take a set of parameters and plot them.  Assume that the larger
     of the array's two dimensions is N (the number of instantiations)
     and the smaller is M (the number of parameters). 
 
-    If npts is not None, then pick only every (N/npts)th point.  
-    if newfig is False, plot into the current figure.
+    If 'params' is a 3D array, then we assume these are in the form of
+    an emcee.sampler.chain instance: axes are (chains, steps,
+    parameters). 
+
+    :OPTIONS:
+      npts: is not None, then pick only every (N/npts)th point.  
+         if newfig is False, plot into the current figure.
+
+      figsize: 2-tuple; figure size (in inches)
+
+      newfig: bool; whether to create a new figure or not
+
+      labs: optional list of labels for each parameter
 
     :REQUIREMENTS: :doc:`numpy`, :doc:`pylab`
     """
     # 2012-02-17 09:45 IJMC: Added labs option
-
+    # 2016-06-20 10:49 IJMC: Added '3D' array functionality.
     from numpy import sqrt
     from pylab import figure, plot, subplot, xticks, gcf, title
 
-    n, m = params.shape
+    defaults = dict(npts=None, figsize=[15,10],newfig=True, labs=None)
+    if args.has_key('npts'):
+        npts = args['npts']
+    else:
+        npts = defaults['npts']
+    if args.has_key('figsize'):
+        figsize = args['figsize']
+    else:
+        figsize = defaults['figsize']
+    if args.has_key('newfig'):
+        newfig = args['newfig']
+    else:
+        newfig = defaults['newfig']
+    if args.has_key('labs'):
+        labs = args['labs']
+    else:
+        labs = defaults['labs']
+
+
+    if params.ndim==2:
+        n, m = params.shape
+    elif params.ndim==3:
+        o,n,m = params.shape
+        sub_args = args.copy()
+        sub_args['newfig'] = False
+        fig = pparams(params[0], **args)
+        [pparams(params[ii], **sub_args) for ii in range(o)]
+        return fig
 
     if n>=m:
         npts0 = n
